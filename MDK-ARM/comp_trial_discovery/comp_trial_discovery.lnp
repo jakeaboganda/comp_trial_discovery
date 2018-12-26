@@ -1,0 +1,28 @@
+--cpu=Cortex-M4.fp
+"comp_trial_discovery\startup_stm32f303xc.o"
+"comp_trial_discovery\stm32f3xx_hal_dma.o"
+"comp_trial_discovery\stm32f3xx_hal_pwr.o"
+"comp_trial_discovery\stm32f3xx_hal_rcc.o"
+"comp_trial_discovery\stm32f3xx_hal_comp.o"
+"comp_trial_discovery\stm32f3xx_hal_tim.o"
+"comp_trial_discovery\stm32f3xx_hal_cortex.o"
+"comp_trial_discovery\stm32f3xx_hal_i2c_ex.o"
+"comp_trial_discovery\stm32f3xx_hal_flash.o"
+"comp_trial_discovery\stm32f3xx_hal_tim_ex.o"
+"comp_trial_discovery\stm32f3xx_hal_i2c.o"
+"comp_trial_discovery\stm32f3xx_hal.o"
+"comp_trial_discovery\stm32f3xx_hal_flash_ex.o"
+"comp_trial_discovery\stm32f3xx_hal_pwr_ex.o"
+"comp_trial_discovery\stm32f3xx_hal_rcc_ex.o"
+"comp_trial_discovery\stm32f3xx_hal_gpio.o"
+"comp_trial_discovery\system_stm32f3xx.o"
+"comp_trial_discovery\main.o"
+"comp_trial_discovery\stm32f3xx_hal_msp.o"
+"comp_trial_discovery\stm32f3xx_it.o"
+"comp_trial_discovery\adc.o"
+"comp_trial_discovery\iebus.o"
+"comp_trial_discovery\buffers.o"
+--library_type=microlib --strict --scatter "comp_trial_discovery\comp_trial_discovery.sct"
+--diag_suppress=L6329 --summary_stderr --info summarysizes --map --load_addr_map_info --xref --callgraph --symbols
+--info sizes --info totals --info unused --info veneers
+--list "comp_trial_discovery.map" -o comp_trial_discovery\comp_trial_discovery.axf
