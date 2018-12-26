@@ -94,9 +94,9 @@ int log_adc_diff_buffer[DEBUG_LOG_ADC_DIFF_BUFFER_SIZE];
 int log_adc_diff_buffer_index = 0;
 #endif
 
-//#define DEBUG_LOG_BITS
+#define DEBUG_LOG_BITS
 #ifdef DEBUG_LOG_BITS
-#define DEBUG_LOG_BITS_BUFFER_SIZE 32
+#define DEBUG_LOG_BITS_BUFFER_SIZE 512
 uint8_t log_bits_buffer[DEBUG_LOG_BITS_BUFFER_SIZE];
 uint8_t log_bits_buffer_index = 0;
 #endif
@@ -606,6 +606,7 @@ static inline void analyzeBit(int bit)
           }
           else if(current_field->id == IEBUS_FRAME_FIELD_SLAVE_ADDRESS)
           {
+#if 0
               if(!isFrameImportant(&read_iebus_frame))
               {
                   is_processing = false;
@@ -614,6 +615,7 @@ static inline void analyzeBit(int bit)
                   ++iebus_status.not_important;
                   continue;
               }
+#endif
           }
 
           ++current_field;
@@ -929,10 +931,11 @@ bool iebus_sendFrame(IEBUS_FRAME *frame)
     return true;
 }
 
+
 #define WITHIN_RANGE(u, l, h) (((u) > (l)) && (u) < (h))
 
 #define is_us_start_bit(x) WITHIN_RANGE(x, 1700, 1810)
-#define is_us_data(x) WITHIN_RANGE(x, 100, 350)
+#define is_us_data(x) WITHIN_RANGE(x, 50, 350)
 
 void iebus_pushUs(uint32_t us)
 {
@@ -954,6 +957,7 @@ void iebus_pushUs(uint32_t us)
         else
         {
             // mark ignored
+            ++iebus_status.bit_ignored;
         }
         return;
     }
@@ -970,22 +974,28 @@ void iebus_pushUs(uint32_t us)
         return;
     }
     
-    if(iebus_state == IEBUS_STATE_DATA0)
+    if(iebus_state == IEBUS_STATE_DATA1)
     {
         data_pulses[1] = us;
         
         // analyze data
         
         // case 1
-        if(WITHIN_RANGE(data_pulses[1], 190, 250))
+        if(WITHIN_RANGE(data_pulses[1], 120, 250))
         {
             analyzeBit(IEBUS_BIT_HIGH);
         }
         
         // case 2
-        else if(WITHIN_RANGE(data_pulses[1], 330, 350))
+        else if(WITHIN_RANGE(data_pulses[1], 300, 400))
         {
             analyzeBit(IEBUS_BIT_LOW);
+        }
+        
+        else
+        {
+            static int wtf = 0;
+            ++wtf;
         }
         
         iebus_state = IEBUS_STATE_DATA0;

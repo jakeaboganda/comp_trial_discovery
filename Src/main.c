@@ -38,9 +38,9 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "stm32f3xx_hal.h"
-#include "ringbuf32.h"
 
 /* USER CODE BEGIN Includes */
+#include "ringbuf32.h"
 #include "iebus.h"
 #include "buffers.h"
 /* USER CODE END Includes */
@@ -80,28 +80,19 @@ void TIM2_IRQHandler()
 /* USER CODE END PFP */
 
 /* USER CODE BEGIN 0 */
-#define counts_to_us(counts) (uint32_t)((counts) * 5 / 4)
+//#define counts_to_us(counts) (uint32_t)((counts) * 5 / 4)
+#define counts_to_us(counts) (uint32_t)((counts) * 5 / 32)
 void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)  
 {
     if(htim->Instance == TIM2)
     {
-        //if(htim->Instance->SR & ((0x1) << 1))
-        {
-#if 1
-            static uint32_t old_count = 0;
-            uint32_t new_count = __HAL_TIM_GET_COMPARE(htim, TIM_CHANNEL_1);
-            uint32_t us = counts_to_us(new_count - old_count);
-            ringbuf32_putLong(&ic_capture_ring, us);
-            old_count = new_count;
-            //iebus_pushUs(us);
-            //__HAL_TIM_SET_COUNTER(&htim2, 0);
-#else
-            uint32_t us = counts_to_us(__HAL_TIM_GET_COMPARE(htim, TIM_CHANNEL_1));
-            ringbuf32_putLong(&ic_capture_ring, us);
-            //iebus_pushUs(us);
-            __HAL_TIM_SET_COUNTER(&htim2, 0);
-#endif
-        }
+        static uint32_t old_count = 0;
+        uint32_t new_count = __HAL_TIM_GET_COMPARE(htim, TIM_CHANNEL_1);
+        uint32_t us = counts_to_us(new_count - old_count);
+        ringbuf32_putLong(&ic_capture_ring, us);
+        old_count = new_count;
+        iebus_pushUs(us);
+        //__HAL_TIM_SET_COUNTER(&htim2, 0);
     }
 }
 /* USER CODE END 0 */
@@ -159,9 +150,9 @@ int main(void)
           //iebus_pushUs(ic_out);
       }
 
-      /* USER CODE END WHILE */
+  /* USER CODE END WHILE */
 
-      /* USER CODE BEGIN 3 */
+  /* USER CODE BEGIN 3 */
 
   }
   /* USER CODE END 3 */
@@ -183,7 +174,9 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
   RCC_OscInitStruct.HSIState = RCC_HSI_ON;
   RCC_OscInitStruct.HSICalibrationValue = 16;
-  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
+  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
+  RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL16;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
     _Error_Handler(__FILE__, __LINE__);
@@ -193,12 +186,12 @@ void SystemClock_Config(void)
     */
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
                               |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
-  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_HSI;
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
   RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
   RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK)
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK)
   {
     _Error_Handler(__FILE__, __LINE__);
   }
@@ -223,7 +216,7 @@ static void MX_COMP2_Init(void)
   hcomp2.Init.InvertingInput = COMP_INVERTINGINPUT_IO1;
   hcomp2.Init.NonInvertingInput = COMP_NONINVERTINGINPUT_IO2;
   hcomp2.Init.Output = COMP_OUTPUT_NONE;
-  hcomp2.Init.OutputPol = COMP_OUTPUTPOL_INVERTED;
+  hcomp2.Init.OutputPol = COMP_OUTPUTPOL_NONINVERTED;
   hcomp2.Init.Hysteresis = COMP_HYSTERESIS_NONE;
   hcomp2.Init.BlankingSrce = COMP_BLANKINGSRCE_NONE;
   hcomp2.Init.Mode = COMP_MODE_HIGHSPEED;
@@ -247,7 +240,7 @@ static void MX_TIM2_Init(void)
   htim2.Instance = TIM2;
   htim2.Init.Prescaler = 0;
   htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim2.Init.Period = (uint32_t)-1;
+  htim2.Init.Period = 0xFFFFFFFF;
   htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
@@ -276,7 +269,7 @@ static void MX_TIM2_Init(void)
   sConfigIC.ICPolarity = TIM_INPUTCHANNELPOLARITY_BOTHEDGE;
   sConfigIC.ICSelection = TIM_ICSELECTION_DIRECTTI;
   sConfigIC.ICPrescaler = TIM_ICPSC_DIV1;
-  sConfigIC.ICFilter = 0x1; //jake
+  sConfigIC.ICFilter = 1;
   if (HAL_TIM_IC_ConfigChannel(&htim2, &sConfigIC, TIM_CHANNEL_1) != HAL_OK)
   {
     _Error_Handler(__FILE__, __LINE__);
